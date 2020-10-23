@@ -3,6 +3,8 @@ from threading import Thread
 import serial
 import csv
 import time
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 class SerialProcessor:
 
@@ -11,8 +13,11 @@ class SerialProcessor:
             print("attempting to initialize reading thread")
             self.thread = Thread(target=self.readData)
             print('thread initialized successfully')
+            print("attempting to initialize reading thread")
+            self.testthread = Thread(target=self.testproccess)
+            print('thread initialized successfully')
         except:
-            print('failed to initialize thread')
+            print('failed to initialize threads')
         self.com = com
         self.baud = baud
         self.csvname = csvname + '_' + str(com) + '_' + str(baud)
@@ -23,11 +28,21 @@ class SerialProcessor:
 
     def go(self):
         self.thread.start()
+        #self.testthread.start()
         #self.readData()
+
+    def testproccess(self):
+        startTime = time.time()
+        print('started thread 2')
+        self.sr.readline()
+        while time.time() - startTime < 10 :
+            print('test')
+            time.sleep(.1)
+
 
     def readData(self):
         startTime = time.time()
-        print('started')
+        print('started thread 1')
         self.sr.readline()
         while time.time() - startTime < 10 :
             file = open(self.csvname + '.csv', 'a')
