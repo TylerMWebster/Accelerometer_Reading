@@ -1,55 +1,56 @@
 import math
+from multiprocessing import Process, Queue
 from threading import Thread
+from itertools import count
 import serial
 import csv
 import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+
 class SerialProcessor:
 
     def __init__(self, com, baud, csvname):
-        try:
-            print("attempting to initialize reading thread")
-            self.thread = Thread(target=self.readData)
-            print('thread initialized successfully')
-            print("attempting to initialize reading thread")
-            self.testthread = Thread(target=self.testproccess)
-            print('thread initialized successfully')
-        except:
-            print('failed to initialize threads')
+        self.polling_rate = 240
         self.com = com
         self.baud = baud
         self.csvname = csvname + '_' + str(com) + '_' + str(baud)
         self.sr = serial.Serial(port=self.com, baudrate=self.baud)
         self.sr.flushInput()
-        print("connected to: " + self.sr.portstr)
+        self.queue = Queue()
+        print("Connected to: " + self.sr.portstr)
 
+        try:
+            print("Attempting to initialize reading thread")
+            self.read = Thread(target=self.readData)
+            print('Thread initialized successfully')
+        except:
+            print('Failed to initialize process')
 
     def go(self):
-        self.thread.start()
-        #self.testthread.start()
-        #self.readData()
+        self.read.start()
 
-    def testproccess(self):
-        startTime = time.time()
-        print('started thread 2')
-        self.sr.readline()
-        while time.time() - startTime < 10 :
-            print('test')
-            time.sleep(.1)
-
+    def quit(self):
+        self.is_running = False
+        self.sr.close()
 
     def readData(self):
+        last_bytes = ''
+        self.is_running = True
+        self.sr.reset_input_buffer()
+        print('Reading Data')
+        index = count()
         startTime = time.time()
-        print('started thread 1')
         self.sr.readline()
-        while time.time() - startTime < 10 :
+        while True :
             file = open(self.csvname + '.csv', 'a')
             data_line = self.sr.readline().decode('utf-8')
             sr_bytes = self.sr.readline()
             decoded_bytes = sr_bytes[0:len(sr_bytes) - 2].decode("utf-8")
-            data_line.strip('\n')
-            print(decoded_bytes)
-            file.write(str(decoded_bytes) + '\n')
+            line = str(next(index)) + ',' + str(decoded_bytes)
+            #file.write(line + '\n')
+            last_bytes = decoded_bytes
+            self.queue.put(str(decoded_bytes))
             file.close()
+        self.quit()

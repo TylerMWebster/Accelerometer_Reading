@@ -1,37 +1,55 @@
+import sys
 from SerialProcessor import SerialProcessor
-from multiprocessing import Process
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import time
-import pandas as pd
+from itertools import count
+from threading import Thread
+from PyQt5 import QtGui, QtCore
+import pyqtgraph as pg
+import numpy as np
+
+
+class SerialParser:
+
+    def __init__(self):
+        self.data = []
+        self.x_vals = np.array((0))
+        self.x_angs = np.empty((0))
+        self.y_angs = np.empty((0))
+        self.z_angs = np.empty((0))
+        #self.widget = pg.GraphicsLayoutWidget(show=True)
+        #self.widget.setWindowTitle('Accelerometer Visualizer')
+        #self.plt = self.widget.addPlot()
+        #self.pen = pg.mkPen(color=(0, 255, 0), width=2)
+        #self.graph = self.plt.plot(self.x_vals, self.x_angs, self.pen)
+        self.sp = SerialProcessor('COM5', 9600, 'test')
+        self.index = count()
+        self.thread = Thread(target=self.plot_data)
+
+
+    def go(self):
+        self.sp.go()
+        self.thread.start()
+
+    #def update(self):
+        #self.plt.setXRange(0, len(self.data))
+        #self.graph.setData(self.x_vals, self.x_angs)
+
+
+    def plot_data(self):
+        counter = 0
+        while self.sp.is_running:
+            self.data.append(self.sp.queue.get())
+            self.x_vals = np.append(self.x_vals, counter)
+            self.data[counter] = self.data[counter].split(',')
+            self.x_angs = np.append(self.x_angs, self.data[counter][0])
+            self.y_angs = np.append(self.y_angs, self.data[counter][1])
+            self.z_angs = np.append(self.z_angs, self.data[counter][2])
+            print(self.data[counter])
+            #self.update()
+            counter += 1
 
 def main():
-    sp = SerialProcessor('COM6', 9600, 'test')
-    sp.go()
-
-    xdat = pd.read_csv('test_COM6_9600.csv', names=['radx', 'rady', 'radz'])
-    pltInterval = 50  # Period at which the plot animation updates [ms]
-    xmin = 0
-    xmax = 50
-    ymin = -(100)
-    ymax = 100
-    fig = plt.figure()
-    ax = plt.axes(xlim=(xmin, xmax), ylim=(float(ymin - (ymax - ymin) / 10), float(ymax + (ymax - ymin) / 10)))
-    ax.set_title('Arduino Analog Read')
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Angle")
-    xvals = [len(xdat)]
-    for i in range(0, len(xdat) - 2):
-        xvals[i] = i
-    lineLabel = 'Value'
-    timeText = ax.text(0.50, 0.95, '', transform=ax.transAxes)
-    lines = ax.plot(xvals, xdat, label=lineLabel)
-    lineValueText = ax.text(0.50, 0.90, '', transform=ax.transAxes)
-    #anim = animation.FuncAnimation(fig, file[-1], fargs=(lines, lineValueText, lineLabel, timeText),
-                                   #interval=pltInterval)  # fargs has to be a tuple
-    plt.legend(loc="upper left")
-    plt.show()
-    plt.close()
+    plotter = SerialPlotter()
+    plotter.go()
 
 if __name__ == "__main__":
     main()
