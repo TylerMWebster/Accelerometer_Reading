@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-data = pd.read_csv('Reference/test_COM6_9600.csv', names=['radx', 'rady', 'radz'])
+data = pd.read_csv('test_COM6_9600.csv', names=['radx', 'rady', 'radz'])
 #data.drop(0,3)
 datx = data['radx'].to_numpy()
 daty = data['rady'].to_numpy()
