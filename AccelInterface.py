@@ -21,6 +21,7 @@ class Window:
         self.link1 = self.canvas.create_line(self.WIDTH/4, self.HEIGHT/4, self.WIDTH/4 + self.linelength, self.HEIGHT/4, width=3)
         self.label = tk.Label(self.canvas, bg='white', fg='red')
         self.label.place(relx=0, rely=.5, height=30, width=800)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
 
     def clock(self):
@@ -35,6 +36,9 @@ class Window:
         self.label.config(text=time)
         self.root.after(1, self.clock)
 
+    def on_closing(self):
+        self.plotter.sp.is_running = False
+        self.root.destroy()
 
     def mainloop(self):
         self.clock()

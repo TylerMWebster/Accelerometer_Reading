@@ -43,7 +43,7 @@ class SerialProcessor:
         index = count()
         startTime = time.time()
         self.sr.readline()
-        while True :
+        while self.is_running:
             file = open(self.csvname + '.csv', 'a')
             data_line = self.sr.readline().decode('utf-8')
             sr_bytes = self.sr.readline()
