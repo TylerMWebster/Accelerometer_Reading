@@ -7,6 +7,7 @@ import csv
 import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from pySerialTransfer import pySerialTransfer as txfer
 
 
 class SerialProcessor:
@@ -15,14 +16,16 @@ class SerialProcessor:
         self.polling_rate = 240
         self.com = com
         self.baud = baud
-        self.csvname = csvname + '_' + str(com) + '_' + str(baud)
+        self.csvname = csvname + '_' + str(self.com) + '_' + str(self.baud)
         self.sr = serial.Serial(port=self.com, baudrate=self.baud)
         self.sr.flushInput()
         self.queue = Queue()
         print("Connected to: " + self.sr.portstr)
 
+        #print('Failed to Connect With Serial')
+
         try:
-            print("Attempting to initialize reading thread")
+            print('Attempting to initialize reading thread')
             self.read = Thread(target=self.readData)
             print('Thread initialized successfully')
         except:
@@ -34,6 +37,12 @@ class SerialProcessor:
     def quit(self):
         self.is_running = False
         self.sr.close()
+
+    def sendMessage(self, command, value):
+        try:
+            print('Command Sent')
+        except:
+            print('Failed to Send Command and Value')
 
     def readData(self):
         last_bytes = ''
@@ -49,7 +58,6 @@ class SerialProcessor:
             sr_bytes = self.sr.readline()
             decoded_bytes = sr_bytes[0:len(sr_bytes) - 2].decode("utf-8")
             line = str(next(index)) + ',' + str(decoded_bytes)
-            #file.write(line + '\n')
             last_bytes = decoded_bytes
             self.queue.put(str(decoded_bytes))
             file.close()
