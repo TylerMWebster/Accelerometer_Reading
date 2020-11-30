@@ -4,8 +4,6 @@ from AccelProcessor import SerialParser
 import tkinter as tk
 import datetime
 import math
-import time
-from threading import Thread
 
 class Window:
     def __init__(self):
@@ -15,6 +13,7 @@ class Window:
 
         #Will need to change Com port based on what computer you are using
         self.parser = SerialParser('COM4')
+
         self.root = tk.Tk()
         self.root.title("Accelerometer Interface")
         self.root.resizable(False, False)
@@ -25,27 +24,44 @@ class Window:
         self.link1 = self.canvas.create_line(self.WIDTH/4, self.HEIGHT/4, self.WIDTH/4 + self.linelength, self.HEIGHT/4, width=3)
         self.label = tk.Label(self.canvas, bg='grey', fg='black')
         self.label.place(x=2, y=self.HEIGHT - 29, height=30, width=100)
+
         self.stopButton = tk.Button(self.canvas, text="Stop Light", bg='white', fg='black', command=self.stopLight)
         self.stopButton.place(x=400, rely=.6, height=30, width=80)
+
         self.startButton = tk.Button(self.canvas, text="Start Light", bg='white', fg='black', command=self.startLight)
         self.startButton.place(x=485, rely=.6, height=30, width=80)
         self.resetButton = tk.Button(self.canvas, text="Reset Unit", bg='white', fg='black', command=self.resetUnit)
         self.resetButton.place(x=570, rely=.6, height=30, width=80)
+
+        self.beepButton = tk.Button(self.canvas, text="Beep", bg='white', fg='black', command=self.makeBeep)
+        self.beepButton.place(x=20, rely=.8, height=30, width=80)
+        self.beepDuration = tk.Scale(self.canvas, from_=500, to=1000, tickinterval=50, orient='horizontal')
+        self.beepDuration.place(x=20, rely=.835, width=350)
+        self.beepDuration.set(600)
+
+        self.brightnessButton = tk.Button(self.canvas, text="Brightness", bg='white', fg='black', command=self.setBrightness)
+        self.brightnessButton.place(x=500, rely=.8, height=30, width=80)
+        self.brightness = tk.Scale(self.canvas, from_=0, to=50, tickinterval=5, orient='horizontal')
+        self.brightness.place(x=500, rely=.835, width=350)
+        self.brightness.set(100)
+
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+    #Messages take a command and value argument. command must be a 4 character string.
     def stopLight(self):
-        self.parser.sp.sr.write(b'0')
-        time.sleep(.5)
+        self.parser.sp.sendMessage('mode', 0)
 
     def startLight(self):
-        self.parser.sp.sr.write(b'1')
-        time.sleep(.5)
+        self.parser.sp.sendMessage('mode', 1)
+
+    def makeBeep(self):
+        self.parser.sp.sendMessage('beep', self.beepDuration.get())
+
+    def setBrightness(self):
+        self.parser.sp.sendMessage('brtn', self.brightness.get())
 
     def resetUnit(self):
-        self.parser.sp.sr.write(b'9')
-        time.sleep(.1)
-        self.stopLight()
-        time.sleep(.5)
+        self.parser.sp.sendMessage('rstt', 0)
 
     def clock(self):
         if len(self.parser.x_angs) > 0:
@@ -71,4 +87,5 @@ class Window:
 if __name__ == '__main__':
     win = Window()
     win.parser.go()
-    win.mainloop()
+    if(win.parser.sp.is_running):
+        win.mainloop()
