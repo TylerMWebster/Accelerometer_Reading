@@ -12,7 +12,7 @@ class Window:
         self.axis = {}
 
         #Will need to change Com port based on what computer you are using
-        self.parser = SerialParser('COM4')
+        self.parser = SerialParser('COM3')
 
         self.root = tk.Tk()
         self.root.title("Accelerometer Interface")
@@ -20,8 +20,10 @@ class Window:
         self.canvas = tk.Canvas(self.root, height=self.HEIGHT, width=self.WIDTH)
         self.canvas.pack()
         self.backGround = self.canvas.create_rectangle(0, 0, self.WIDTH, self.HEIGHT, fill='grey', outline='grey')
-        self.linelength = 400
-        self.link1 = self.canvas.create_line(self.WIDTH/4, self.HEIGHT/4, self.WIDTH/4 + self.linelength, self.HEIGHT/4, width=3)
+
+        self.linelength = 200
+        self.link1 = self.canvas.create_line(self.WIDTH/2, self.HEIGHT/4, self.WIDTH/2 + self.linelength, self.HEIGHT/4, width=3)
+
         self.label = tk.Label(self.canvas, bg='grey', fg='black')
         self.label.place(x=2, y=self.HEIGHT - 29, height=30, width=100)
 
@@ -67,16 +69,16 @@ class Window:
         if len(self.parser.x_angs) > 0:
             self.x_ang = self.parser.x_angs[-1]
             self.canvas.delete(self.link1)
-            x_end = self.WIDTH / 4 + self.linelength * math.cos(math.radians(float(self.x_ang)))
-            y_end = self.HEIGHT / 4 - self.linelength * math.sin(math.radians(float(self.x_ang)))
-            self.link1 = self.canvas.create_line(self.WIDTH / 4, self.HEIGHT / 4, x_end, y_end, width=3)
+            x_end = self.WIDTH / 2 + self.linelength * math.cos(math.radians(float(self.x_ang-90)))
+            y_end = self.HEIGHT / 4 - self.linelength * math.sin(math.radians(float(self.x_ang-90)))
+            self.link1 = self.canvas.create_line(self.WIDTH / 2, self.HEIGHT / 4, x_end, y_end, width=3)
 
         time = datetime.datetime.now().strftime("Time: %H:%M:%S")
         self.label.config(text=time)
         self.root.after(1, self.clock)
 
     def on_closing(self):
-        self.parser.sp.is_running = False
+        self.parser.stop()
         self.root.destroy()
 
     def mainloop(self):

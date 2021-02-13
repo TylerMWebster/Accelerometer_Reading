@@ -2,11 +2,10 @@
 #include "Adafruit_MPU6050.h"
 #include "Wire.h"
 #include "FastLED.h"
-#include "ArdOSC.h"
 
 #define DATA_PIN 6
 #define NUM_LEDS 16
-#define MAX_BRIGHTNESS 30// watch the power!
+#define MAX_BRIGHTNESS 20// watch the power!
 #define tolerance 5
 CRGB leds[NUM_LEDS];
 CRGB myColor[] = {CRGB::Green, CRGB::Yellow, CRGB::Red};
@@ -30,13 +29,35 @@ int i, j;
 int pos = 2;
 int state = 0;
 int curlState = 0;
-//default mode is light feedback
-int mode = '1';
-//int headers[] = {10,20,30};
+//default mode is no feedback
+int mode = 0;
+//headers must be 4 char strings
+String headers[] = { "test", "mode", "beep", "rstt", "brtn" };
 
 
 void getInput(){
   //In Progress
+  bool headFound = false;
+  if (Serial.available() > 0){
+    String msg = String(Serial.readString());
+    String key = msg.substring(1, 5);
+    int value = msg.substring(6).toInt();
+    
+    if (key.length() > 0){
+      if(key == headers[0]){
+        Serial.print(key + "   ");
+        Serial.println(value);
+      } else if(key == headers[1]){
+        mode = value;
+      }else if(key == headers[2]){
+        beep(value);
+      } else if(key == headers[3]){
+        reset();
+      } else if(key == headers[4]){
+        FastLED.setBrightness(value);
+      }
+    }
+  }
 }
 
 
@@ -53,7 +74,7 @@ void clearRing(){
     for (int j=0; j<NUM_LEDS;j++){
         leds[j] = CRGB::Black;
     }
-    FastLED.show();
+    //FastLED.show();
 }
 
 
@@ -90,17 +111,17 @@ void turnOn( int setState, int setPos ) {
     leds[j] = CRGB::Green;
   }
   FastLED.show();
-  beep();
+  beep(10);
   //state = setState;
   pos = setPos;
   //delay(250);
 }
 
 
-void beep(){
+void beep(int duration){
   //beep when called
   digitalWrite(buzPin,HIGH);
-  delay(10);
+  delay(duration);
   digitalWrite(buzPin,LOW);
 }
 
@@ -128,7 +149,7 @@ void resetPins() {
 void guideCurl(){
   // Illuminate Leds in the direction we want the user to go
   // State 0 is the extension stage of the curl exercise, State 1 is the compression
-  for (int i = 0; i < NUM_LEDS; i++) leds[i] = CRGB::Black;
+  //for (int i = 0; i < NUM_LEDS; i++) leds[i] = CRGB::Black;
   switch (curlState) {
     case 0:
     goal = 155;
@@ -174,12 +195,14 @@ void setup() {
   //Live filtering, 260 means filter is off
   mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
   FastLED.setBrightness(MAX_BRIGHTNESS);
-  FastLED.addLeds < WS2812B, DATA_PIN, GRB > leds, NUM_LEDS);
+  FastLED.addLeds < WS2812B, DATA_PIN, GRB >( leds, NUM_LEDS);
   Serial.begin(9600);
   Serial.println("x,y,z");
   pinMode(buzPin,OUTPUT);
   pinMode(button1Pin, INPUT_PULLUP);//set internal pull up for button
   pinMode(ledPin, OUTPUT);
+  clearRing();
+  FastLED.show();
   delay(100);
 }
 
@@ -203,28 +226,27 @@ void loop() {
 
   // set initial values
   if (i == 1) {
-    grx = 90;
+    grx = 0;
     gry = 0;
     grz = 0;
   }
   // integrate to find the gyro angle
   else{
-    grx += r2d*gx*timeStep;
-    gry += r2d*gy*timeStep;
-    grz += r2d*gz*timeStep;
+    grx += gx*timeStep;
+    gry += gy*timeStep;
+    grz += gz*timeStep;
 
   }
 
   //Do one of these based on what mode variable ='s
+  
   switch(mode){
-    case '0':
+    case 0:
       clearRing();
+      FastLED.show();
     break;
-    case '1':
+    case 1:
       guideCurl();
-    break;
-    case '9':
-      reset();
     break;
   }
 
@@ -235,4 +257,3 @@ void loop() {
   delay(50);
   i++;
 }
-
