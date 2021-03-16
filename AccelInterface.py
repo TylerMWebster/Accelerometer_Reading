@@ -4,6 +4,7 @@ from AccelProcessor import SerialParser
 import tkinter as tk
 import datetime
 import math
+from PIL import ImageTk, Image  
 
 class Window:
     def __init__(self):
@@ -12,11 +13,13 @@ class Window:
         self.axis = {}
 
         #Will need to change Com port based on what computer you are using
-        self.parser = SerialParser('COM3')
+        self.parser = SerialParser('COM12')
 
         self.root = tk.Tk()
         self.root.title("Accelerometer Interface")
         self.root.resizable(False, False)
+        #self.root.wm_attributes('-alpha', 0.9)
+
         self.canvas = tk.Canvas(self.root, height=self.HEIGHT, width=self.WIDTH)
         self.canvas.pack()
         self.backGround = self.canvas.create_rectangle(0, 0, self.WIDTH, self.HEIGHT, fill='grey', outline='grey')
@@ -48,6 +51,8 @@ class Window:
         self.brightness.set(100)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.root.bind('<Motion>', self.motion)
+
 
     #Messages take a command and value argument. command must be a 4 character string.
     def stopLight(self):
@@ -80,10 +85,29 @@ class Window:
     def on_closing(self):
         self.parser.stop()
         self.root.destroy()
+    
+    def ring(self):
+        ring_x = 250 
+        ring_y = 250
+        inner_radius = 175
+        outer_radius = 200
+        self.x_leftmin, self.x_leftmax = ring_x - outer_radius, ring_x - inner_radius
+        self.x_rightmin, self.x_rightmax = ring_x + inner_radius, ring_x + outer_radius
+        self.img = ImageTk.PhotoImage(Image.open("Accelerometer_Reading\imgs\pixelring.png").resize((200, 200), Image.ANTIALIAS))  
+        self.canvas.create_image(ring_x, ring_y, image=self.img) 
 
     def mainloop(self):
         self.clock()
+        self.ring()
         self.root.mainloop()
+
+
+    def motion(self, event):
+        x, y = event.x, event.y
+        radius = math.sqrt(x**2 + y**2)
+
+        if radius < self.outer_radius and radius > self.inner_radius:
+            print('{}, {}'.format(x, y))
 
 
 if __name__ == '__main__':

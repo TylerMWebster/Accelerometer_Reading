@@ -1,7 +1,7 @@
 /*
 Author: Tyler Webster, JMU
 Spring 2021
-Single gyroscope readings with realtime light feedback
+Dual gyroscope readings with realtime light feedback
 Recieves serial commands from control software 
 */
 
@@ -9,6 +9,8 @@ Recieves serial commands from control software
 #include "Adafruit_MPU6050.h"
 #include "Wire.h"
 #include "FastLED.h"
+#include <SoftwareSerial.h>
+SoftwareSerial XBee(0, 1);
 
 #define DATA_PIN 6
 #define NUM_LEDS 16
@@ -18,11 +20,19 @@ CRGB leds[NUM_LEDS];
 CRGB myColor[] = {CRGB::Green, CRGB::Yellow, CRGB::Red};
 
 Adafruit_MPU6050 mpu;
+Adafruit_MPU6050 mpu2;
+uint8_t adr2 = 0x69;
+
 sensors_event_t a, g, temp;
+sensors_event_t a2, g2, temp2;
 
 int16_t ax, ay, az, gx, gy, gz;
+int16_t ax2, ay2, az2, gx2, gy2, gz2;
+
 double timeStep, thistime, timePrev, startTime;
 double arx, ary, arz, grx, gry, grz, gsx, gsy, gsz, rx, ry, rz;
+double arx2, ary2, arz2, grx2, gry2, grz2, gsx2, gsy2, gsz2, rx2, ry2, rz2;
+
 double gyroScales[] = {131, 65.5, 32.8, 16.4};
 double gyroScale = gyroScales[0];
 double r2d = (180 / PI);
@@ -30,14 +40,16 @@ double r2d = (180 / PI);
 const int motorPins[] = {10, 9, 2, 3};
 const int button1Pin = A4;  // pushbutton 1 pin
 const int ledPin =  13;     // LED pin
-int buzPin = 3;
+int buzPin = 4;
 int goal = 90;
 int i, j;
 int pos = 2;
 int state = 0;
 int curlState = 0;
+
 //default mode is no feedback
 int mode = 0;
+
 //headers must be 4 char strings
 String headers[] = { "test", "mode", "beep", "rstt", "brtn" };
 
@@ -72,6 +84,10 @@ void reset() {
     grx = 0;
     gry = 0;
     grz = 0;
+
+    grx2 = 0;
+    gry2 = 0;
+    grz2 = 0;
 }
 
 
@@ -188,28 +204,40 @@ void guideCurl(){
 
 
 void setup() {
-  pinMode(2, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP);  
+  pinMode(buzPin,OUTPUT);
+  pinMode(button1Pin, INPUT_PULLUP);//set internal pull up for button
+  pinMode(ledPin, OUTPUT);
+  
   Wire.begin();
+  XBee.begin(9600);
   Serial.begin(9600);
   mpu.begin();
+  mpu2.begin( adr2 );
+  
   startTime = millis();
   thistime = millis();
   i = 1;
   //mpu.setCycleRate(MPU6050_CYCLE_20_HZ);
+  
   //Sensitivity
   mpu.setGyroRange(MPU6050_RANGE_2000_DEG);
+  mpu2.setGyroRange(MPU6050_RANGE_2000_DEG);
+  
   //Live filtering, 260 means filter is off
   mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
+  mpu2.setFilterBandwidth(MPU6050_BAND_260_HZ);
+  
+  //Setup LED ring
   FastLED.setBrightness(MAX_BRIGHTNESS);
   FastLED.addLeds < WS2812B, DATA_PIN, GRB >( leds, NUM_LEDS);
-  Serial.begin(9600);
-  Serial.println("x,y,z");
-  pinMode(buzPin,OUTPUT);
-  pinMode(button1Pin, INPUT_PULLUP);//set internal pull up for button
-  pinMode(ledPin, OUTPUT);
   clearRing();
   FastLED.show();
-  delay(100);
+  
+  Serial.begin(9600);
+  Serial.println("x,y,z,x2,y2,z2");
+
+  //delay(100);
 }
 
 
@@ -227,20 +255,30 @@ void loop() {
    gy = g.gyro.y;
    gz = g.gyro.z;
 
+   mpu2.getEvent(&a2, &g2, &temp2);
+   gx2 = -g2.gyro.x;
+   gy2 = g2.gyro.y;
+   gz2 = g2.gyro.z;
+
+   
+
   // apply gyro scale from datasheet
   gsx = gx/gyroScale;   gsy = gy/gyroScale;   gsz = gz/gyroScale;
+  gsx2 = gx2/gyroScale;   gsy2 = gy2/gyroScale;   gsz2 = gz2/gyroScale;
 
   // set initial values
   if (i == 1) {
-    grx = 0;
-    gry = 0;
-    grz = 0;
+    reset();
   }
   // integrate to find the gyro angle
   else{
     grx += gx*timeStep;
     gry += gy*timeStep;
     grz += gz*timeStep;
+
+    grx2 += gx2*timeStep;
+    gry2 += gy2*timeStep;
+    grz2 += gz2*timeStep;
 
   }
 
@@ -255,11 +293,18 @@ void loop() {
       guideCurl();
     break;
   }
+  if (XBee.available()){
+    XBee.write(grx);
+  } else {
+    //Serial.println("No XBee");
+  }
+    Serial.print(grx);   Serial.print(",");
+    Serial.print(gry);   Serial.print(",");
+    Serial.print(grz);   Serial.print(",");
+    Serial.print(grx2);   Serial.print(",");
+    Serial.print(gry2);   Serial.print(",");
+    Serial.println(grz2);   
 
-  Serial.print(grx);   Serial.print(",");
-  Serial.print(gry);   Serial.print(",");
-  Serial.println(grz);   
-
-  delay(50);
+  //delay(50);
   i++;
 }
