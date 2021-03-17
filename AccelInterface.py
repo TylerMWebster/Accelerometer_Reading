@@ -87,27 +87,26 @@ class Window:
         self.root.destroy()
     
     def ring(self):
-        ring_x = 250 
-        ring_y = 250
-        inner_radius = 175
-        outer_radius = 200
-        self.x_leftmin, self.x_leftmax = ring_x - outer_radius, ring_x - inner_radius
-        self.x_rightmin, self.x_rightmax = ring_x + inner_radius, ring_x + outer_radius
+        self.ring_x = 200 
+        self.ring_y = 300
         self.img = ImageTk.PhotoImage(Image.open("Accelerometer_Reading\imgs\pixelring.png").resize((200, 200), Image.ANTIALIAS))  
-        self.canvas.create_image(ring_x, ring_y, image=self.img) 
+        self.canvas.create_image(self.ring_x, self.ring_y, image=self.img) 
 
     def mainloop(self):
         self.clock()
         self.ring()
         self.root.mainloop()
 
-
     def motion(self, event):
         x, y = event.x, event.y
         radius = math.sqrt(x**2 + y**2)
-
-        if radius < self.outer_radius and radius > self.inner_radius:
+        angle = math.atan2(self.ring_y - y,self.ring_x - x) * (180 / math.pi)
+        circle = (x-self.ring_x)**2+(y-self.ring_y)**2
+        inner_bound = 4900
+        outer_bound = 10000
+        if (circle < outer_bound) and (circle > inner_bound) :
             print('{}, {}'.format(x, y))
+            print(round(angle, 1))
 
 
 if __name__ == '__main__':
