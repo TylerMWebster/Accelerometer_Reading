@@ -305,6 +305,6 @@ void loop() {
     Serial.print(gry2);   Serial.print(",");
     Serial.println(grz2);   
 
-  //delay(50);
+  delay(50);
   i++;
 }

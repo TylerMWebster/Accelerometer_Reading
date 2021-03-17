@@ -52,6 +52,9 @@ class Window:
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.root.bind('<Motion>', self.motion)
+        self.root.bind("<Button-1>", self.leftclick)
+        self.root.bind("<Button-3>", self.rightclick)
+        self.root.bind_all("<MouseWheel>", self.scroll)
 
 
     #Messages take a command and value argument. command must be a 4 character string.
@@ -89,6 +92,12 @@ class Window:
     def ring(self):
         self.ring_x = 200 
         self.ring_y = 300
+        led_increment = 22.5
+        self.led_angles = []
+        self.led_span = 1
+        for i in range(0,16):
+            self.led_angles.append(tuple((i*led_increment - led_increment / 2, i*led_increment + led_increment / 2 )))
+            #print(self.led_angles)
         self.img = ImageTk.PhotoImage(Image.open("Accelerometer_Reading\imgs\pixelring.png").resize((200, 200), Image.ANTIALIAS))  
         self.canvas.create_image(self.ring_x, self.ring_y, image=self.img) 
 
@@ -99,14 +108,41 @@ class Window:
 
     def motion(self, event):
         x, y = event.x, event.y
-        radius = math.sqrt(x**2 + y**2)
-        angle = math.atan2(self.ring_y - y,self.ring_x - x) * (180 / math.pi)
-        circle = (x-self.ring_x)**2+(y-self.ring_y)**2
+        self.angle = math.atan2(self.ring_y - y,self.ring_x - x) * (180 / math.pi)
+        if self.angle < 0 and self.angle < self.led_angles[0][0]:
+            self.angle = math.atan2( (self.ring_y - y) * -1, (self.ring_x - x) * -1 ) * ( 180 / math.pi ) + 180
+        circle = (x-self.ring_x)**2 + (y-self.ring_y)**2
+        self.on_led = False
+        for i in range(0, 16):
+            if self.angle > self.led_angles[i][0] and self.angle < self.led_angles[i][1]:
+                self.led_num = i 
+                self.on_led = True
+
         inner_bound = 4900
         outer_bound = 10000
         if (circle < outer_bound) and (circle > inner_bound) :
-            print('{}, {}'.format(x, y))
-            print(round(angle, 1))
+            self.on_circle = True
+        else:
+            self.on_circle = False
+    
+    def leftclick( self, event ):
+        if self.on_circle and self.on_led:
+            print( 'left click on circle at ' + str(round(self.angle, 1)) + ' degrees' + ', LED: ' + str(self.led_num)) 
+            #print( 'left click on circle at LED: ' + str(self.led_num))
+
+    def rightclick( self, event ):
+        #TODO
+        print('rightclick')
+
+    def scroll( self, event ):
+        span_min = 1
+        span_max = 17
+
+        delta = int(event.delta / 120)
+        if self.on_circle:
+            if self.led_span + 2 * delta < span_max and self.led_span + 2 * delta >= span_min:
+                self.led_span += 2 * delta
+            print(self.led_span)
 
 
 if __name__ == '__main__':
