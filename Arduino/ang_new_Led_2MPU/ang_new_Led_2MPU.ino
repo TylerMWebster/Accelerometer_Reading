@@ -46,12 +46,14 @@ int i, j;
 int pos = 2;
 int state = 0;
 int curlState = 0;
+int span = 1;
+int color = 0;
 
 //default mode is no feedback
 int mode = 0;
 
 //headers must be 4 char strings
-String headers[] = { "test", "mode", "beep", "rstt", "brtn" };
+String headers[] = { "test", "mode", "beep", "rstt", "brtn", "lite", "span", "cler", "colr" };
 
 
 void getInput(){
@@ -73,6 +75,17 @@ void getInput(){
         reset();
       } else if(key == headers[4]){
         FastLED.setBrightness(value);
+      } else if(key == headers[5]){
+        pos = value;
+        lightLed(pos);
+      } else if(key == headers[6]){
+        span = value;
+        lightLed(pos);
+      } else if(key == headers[7]){
+        clearRing();
+      } else if(key == headers[8]){
+        color = value;
+        lightLed(pos);
       }
     }
   }
@@ -84,7 +97,6 @@ void reset() {
     grx = 0;
     gry = 0;
     grz = 0;
-
     grx2 = 0;
     gry2 = 0;
     grz2 = 0;
@@ -125,8 +137,23 @@ void updateLeds(int pos1, int ang){
     FastLED.show();
 }
 
+void lightLed(int posi){
+  clearRing();
+  int offset = (span - 1)/2;
+  int strt = posi - offset;
+  int endd = posi + offset;
+  for (int i = strt; i < endd + 1; i++){
+    if ( i < 0 ){
+      leds[i+16] = myColor[color];
+    } else{
+      leds[i] = myColor[color];
+    }
+  }
+  FastLED.show();
+}
 
-void turnOn( int setState, int setPos ) {
+
+void flash( int setState, int setPos ) {
   //flash whole ring green when goal is reached
   for (int j=0; j<NUM_LEDS;j++)
   {
@@ -180,7 +207,7 @@ void guideCurl(){
        if (grx > goal + 5 && grx < 225)
          { pos = 10 ;}
        if (grx >= goal - 5 && grx <= goal + 5){ 
-          turnOn(1,2);
+          flash(1,2);
           grx = 0;
           curlState = 1;
        }   
@@ -192,7 +219,7 @@ void guideCurl(){
        if (grx < goal - 5 && grx > -200)
         { pos = 2;}
        if (grx >= goal - 5 && grx <= goal + 5){ 
-          turnOn(0,10);
+          flash(0,10);
           grx = 0;
           curlState = 0;
         }    
@@ -291,6 +318,8 @@ void loop() {
     break;
     case 1:
       guideCurl();
+    break;
+    default:
     break;
   }
   if (XBee.available()){
